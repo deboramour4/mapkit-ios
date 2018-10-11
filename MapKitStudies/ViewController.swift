@@ -43,7 +43,7 @@ class ViewController: UIViewController {
                    in: CLLocationCoordinate2DMake(-3.852348, -38.678639),
                    withTitle: "Maracanaú, Ceará",
                    subtitle: "Esse é o lugar é aleatório",
-                   pinImage: UIImage(named: "location"),
+                   pinImage: UIImage(named: "alert"),
                    detailImage: UIImage(named: "farm"))
         
         //Get user's location and show it in the map
@@ -93,18 +93,28 @@ class ViewController: UIViewController {
         map.addAnnotation(point)
     }
     
+    @IBAction func createPointWithLongPress(_ sender: UILongPressGestureRecognizer) {
+        if sender.state != UIGestureRecognizer.State.began { return }
+        
+        let touchLocation = sender.location(in: myMap)
+        let locationCoordinate = myMap.convert(touchLocation, toCoordinateFrom: myMap)
+        addPointTo(map: myMap,
+                   in: CLLocationCoordinate2DMake(locationCoordinate.latitude, locationCoordinate.longitude),
+                   pinImage: UIImage(named: "add"))
+    }
+    
 }
 
 extension ViewController : CLLocationManagerDelegate {
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
-        
+
         //The map area follow the user location when the switch is on
         if followSwitch.isOn {
             let currentLocation = locations.last!
-            
+
             let x : CLLocationDegrees = currentLocation.coordinate.latitude
             let y : CLLocationDegrees = currentLocation.coordinate.longitude
-        
+
             updateAreaOf(map: self.myMap, latitude: x, longitude: y)
         }
     }
@@ -141,27 +151,26 @@ extension ViewController : MKMapViewDelegate {
         //Set the pinImage of the PointAnnotation
         annotationView.image = customAnnotation.pinImage
         
-        //Get width and height of the detailImage
-        let width = customAnnotation.detailImage.size.width
-        let height = customAnnotation.detailImage.size.height
+        if let customDetailImage = customAnnotation.detailImage {
         
-        let customView = UIView()
-        
-        //Set constraints of the detailImage
-        let views = ["customView": customView]
-        customView.addConstraints(NSLayoutConstraint.constraints(withVisualFormat: "H:[customView(\(width/2))]", options: [], metrics: nil, views: views))
-        customView.addConstraints(NSLayoutConstraint.constraints(withVisualFormat: "V:[customView(\(height/2))]", options: [], metrics: nil, views: views))
-        
-        //Add image to customView
-        let imageView = UIImageView(frame: CGRect(x: 0, y: 0, width: width/2, height: height/2))
-        imageView.image = customAnnotation.detailImage
-        customView.addSubview(imageView)
-        
-//        let detailLabel = UILabel(frame: CGRect(x: 0, y: 0, width: 200, height: 50))
-//        detailLabel.text = "Oie"
-//        customView.addSubview(detailLabel)
-        
-        annotationView.detailCalloutAccessoryView = customView
+            //Get width and height of the detailImage
+            let width = customDetailImage.size.width
+            let height = customDetailImage.size.height
+            
+            let customView = UIView()
+            
+            //Set constraints of the detailImage
+            let views = ["customView": customView]
+            customView.addConstraints(NSLayoutConstraint.constraints(withVisualFormat: "H:[customView(\(width/2))]", options: [], metrics: nil, views: views))
+            customView.addConstraints(NSLayoutConstraint.constraints(withVisualFormat: "V:[customView(\(height/2))]", options: [], metrics: nil, views: views))
+            
+            //Add image to customView
+            let imageView = UIImageView(frame: CGRect(x: 0, y: 0, width: width/2, height: height/2))
+            imageView.image = customAnnotation.detailImage
+            customView.addSubview(imageView)
+            
+            annotationView.detailCalloutAccessoryView = customView
+        }
     }
 
 }
