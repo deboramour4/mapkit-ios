@@ -10,5 +10,6 @@ import UIKit
 import MapKit
 
 class CustomPointAnnotation: MKPointAnnotation {
-    var image: UIImage!
+    var pinImage: UIImage!
+    var detailImage: UIImage!
 }

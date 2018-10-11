@@ -13,34 +13,48 @@ class ViewController: UIViewController {
 
     //Outlets from view
     @IBOutlet weak var myMap: MKMapView!
+    @IBOutlet weak var followSwitch: UISwitch!
     
     //My variables
     var locationManager = CLLocationManager()
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        myMap.showsUserLocation = true
         
-        //Functions to answer the questions
+        //Functions to show an especific Area in map
         showMapArea(latitude: -3.743993, longitude: -38.535674)
-        updateAreaOf(map: myMap, latitude: -3.943993, longitude: -38.535674)
         
         //Adding PointAnnotations to Map
-        addPointTo(map: myMap, in: CLLocationCoordinate2DMake(-4.143993, -38.535674))
-        addPointTo(map: myMap, in: CLLocationCoordinate2DMake(-3.743993, -38.535674), withTitle: "Eu to aqui", andSubtitle: "Esse é o lugar que eu venho todo santo dia", andImage: UIImage(named: "user"))
+        addPointTo(map: myMap,
+                   in: CLLocationCoordinate2DMake(-3.742973, -38.478405),
+                   withTitle: "Fortaleza, Ceará",
+                   subtitle: "Esse é o lugar que eu venho todo santo dia",
+                   pinImage: UIImage(named: "user"),
+                   detailImage: UIImage(named: "city"))
         
-        addPointTo(map: myMap, in: CLLocationCoordinate2DMake(-4.143993, -38.935674), withTitle: "Um lugar perigoso", andSubtitle: "Esse é o lugar é estranho", andImage: UIImage(named: "alert"))
+        addPointTo(map: myMap,
+                   in: CLLocationCoordinate2DMake(-3.842742, -38.391962),
+                   withTitle: "Porto das Dunas, Ceará",
+                   subtitle: "Esse é o lugar é bonito.",
+                   pinImage: UIImage(named: "alert"),
+                   detailImage: UIImage(named: "beach"))
         
-        getUserLocation()
+        addPointTo(map: myMap,
+                   in: CLLocationCoordinate2DMake(-3.852348, -38.678639),
+                   withTitle: "Maracanaú, Ceará",
+                   subtitle: "Esse é o lugar é aleatório",
+                   pinImage: UIImage(named: "location"),
+                   detailImage: UIImage(named: "farm"))
+        
+        //Get user's location and show it in the map
+        getUserLocation(myMap)
         
         //Set delegates
         locationManager.delegate = self
         myMap.delegate = self
-        
     }
     
     func showMapArea(latitude: CLLocationDegrees, longitude: CLLocationDegrees) {
-
         let myCenterCoordinate = CLLocationCoordinate2DMake(latitude, longitude)
         let mySpan = MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)
         let myRegion = MKCoordinateRegion(center: myCenterCoordinate, span: mySpan)
@@ -48,7 +62,8 @@ class ViewController: UIViewController {
         myMap.setRegion(myRegion, animated: true)
     }
     
-    func getUserLocation() {
+    func getUserLocation(_ map: MKMapView) {
+        map.showsUserLocation = true
         locationManager.desiredAccuracy = kCLLocationAccuracyBest
         locationManager.requestWhenInUseAuthorization()
         locationManager.startUpdatingLocation()
@@ -57,18 +72,24 @@ class ViewController: UIViewController {
     func updateAreaOf(map: MKMapView, latitude: CLLocationDegrees, longitude: CLLocationDegrees) {
         let center = CLLocationCoordinate2DMake(latitude, longitude)
         map.setCenter(center, animated: true)
-
-//        map.setRegion(MKCoordinateRegion(center: centerCoordinate, span: myMap.region.span), animated: true)
     }
     
-    func addPointTo(map: MKMapView, in coordinate: CLLocationCoordinate2D, withTitle title: String = "New point", andSubtitle subtitle: String = "", andImage image: UIImage? = nil) {
+    func addPointTo(map: MKMapView, in coordinate: CLLocationCoordinate2D, withTitle title: String = "New point", subtitle: String = "", pinImage: UIImage? = nil, detailImage: UIImage? = nil) {
+        
+        //Create a custom point annotation to set a pin image and a detail image
         let point = CustomPointAnnotation()
+        
         point.coordinate = coordinate
         point.title = title
         point.subtitle = subtitle
-        if let _ = image {
-            point.image = image
+        
+        if let _ = pinImage {
+            point.pinImage = pinImage
         }
+        if let _ = detailImage {
+            point.detailImage = detailImage
+        }
+        
         map.addAnnotation(point)
     }
     
@@ -76,14 +97,16 @@ class ViewController: UIViewController {
 
 extension ViewController : CLLocationManagerDelegate {
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
-        let currentLocation = locations.last!
         
-        let x : CLLocationDegrees = currentLocation.coordinate.latitude
-        let y : CLLocationDegrees = currentLocation.coordinate.longitude
+        //The map area follow the user location when the switch is on
+        if followSwitch.isOn {
+            let currentLocation = locations.last!
+            
+            let x : CLLocationDegrees = currentLocation.coordinate.latitude
+            let y : CLLocationDegrees = currentLocation.coordinate.longitude
         
-        updateAreaOf(map: self.myMap, latitude: x, longitude: y)
-        
-        print(locations)
+            updateAreaOf(map: self.myMap, latitude: x, longitude: y)
+        }
     }
 }
 
@@ -102,12 +125,43 @@ extension ViewController : MKMapViewDelegate {
             annotationView!.annotation = annotation
         }
         
-        //Get the custom image set in CustomPointAnnotation
-        if let customAnnotation = annotation as? CustomPointAnnotation {
-            annotationView!.image = customAnnotation.image
-        }
+        //Customize the view of the details
+        customizeDetailView(annotationView!)
         
         return annotationView
     }
-    
+
+
+    func customizeDetailView(_ annotationView: MKAnnotationView) {
+        //Change the image of the CustomPointAnnotation
+        guard let customAnnotation = annotationView.annotation as? CustomPointAnnotation else {
+            return
+        }
+        
+        //Set the pinImage of the PointAnnotation
+        annotationView.image = customAnnotation.pinImage
+        
+        //Get width and height of the detailImage
+        let width = customAnnotation.detailImage.size.width
+        let height = customAnnotation.detailImage.size.height
+        
+        let customView = UIView()
+        
+        //Set constraints of the detailImage
+        let views = ["customView": customView]
+        customView.addConstraints(NSLayoutConstraint.constraints(withVisualFormat: "H:[customView(\(width/2))]", options: [], metrics: nil, views: views))
+        customView.addConstraints(NSLayoutConstraint.constraints(withVisualFormat: "V:[customView(\(height/2))]", options: [], metrics: nil, views: views))
+        
+        //Add image to customView
+        let imageView = UIImageView(frame: CGRect(x: 0, y: 0, width: width/2, height: height/2))
+        imageView.image = customAnnotation.detailImage
+        customView.addSubview(imageView)
+        
+//        let detailLabel = UILabel(frame: CGRect(x: 0, y: 0, width: 200, height: 50))
+//        detailLabel.text = "Oie"
+//        customView.addSubview(detailLabel)
+        
+        annotationView.detailCalloutAccessoryView = customView
+    }
+
 }
